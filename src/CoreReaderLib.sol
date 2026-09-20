@@ -180,7 +180,11 @@ library CoreReaderLib {
 
   function readBorrowLendUserState(address user, uint64 token) internal view returns (BorrowLendUserTokenState memory) {
     (bool success, bytes memory result) = PRECOMPILE_ADDRESS_BORROW_LEND_USER_STATE.staticcall(abi.encode(user, token));
-    require(success, ReadFailure(PRECOMPILE_ADDRESS_BORROW_LEND_USER_STATE));
-    return abi.decode(result, (BorrowLendUserTokenState));
+    // if the user hasnt interacted with the borrow/lend then the precompile current throws an error as
+    // opposed to returning a default value so we need to gracefully handle precompile failure
+    if (success && result.length > 0) {
+      return abi.decode(result, (BorrowLendUserTokenState));
+    }
+    return BorrowLendUserTokenState(BasisAndValue(0, 0), BasisAndValue(0, 0));
   }
 }
